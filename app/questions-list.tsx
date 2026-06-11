@@ -32,14 +32,20 @@ export default function QuestionsList({
         ? `/api/questions?q=${encodeURIComponent(query)}`
         : `/api/questions`;
 
+      console.log("Fetching URL:", url);  
       const res = await fetch(url);
       const data = await res.json();
 
       setQuestions(Array.isArray(data.questions) ? data.questions : []);
       setHasMore(data.hasMore ?? false);
-    } catch (error) {
-      console.error("Error loading questions:", error);
-    }
+   } catch (error) {
+  console.error("FULL ERROR:", error);
+
+  if (error instanceof Error) {
+    console.error("MESSAGE:", error.message);
+    console.error("STACK:", error.stack);
+  }
+}
   }
 
   // Debounced search (FIXED)

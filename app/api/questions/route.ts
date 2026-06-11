@@ -1,45 +1,37 @@
-import { supabase } from "@/lib/supabase";
 import { getQuestionsPage, searchQuestions } from "@/lib/questions";
-
-const PAGE_SIZE = 10;
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const q = searchParams.get("q")?.trim();
+
+    const q = searchParams.get("q");
+    const offset = Number(searchParams.get("offset") ?? "0");
 
     if (q) {
-      const questions = await searchQuestions(q, PAGE_SIZE);
-      return Response.json({ questions, hasMore: false });
+      const questions = await searchQuestions(q, 20);
+      return Response.json({
+        questions,
+        hasMore: false,
+      });
     }
 
-    const offset = Number(searchParams.get("offset") ?? 0);
-    const { questions, hasMore } = await getQuestionsPage(offset, PAGE_SIZE);
+    const result = await getQuestionsPage(offset, 10);
 
-    return Response.json({ questions, hasMore });
+    return Response.json(result);
   } catch (error) {
-    console.error("Error loading questions:", error);
+    console.error("GET /api/questions error:", error);
+
     return Response.json(
-      {
-        questions: [],
-        hasMore: false,
-        error: error instanceof Error ? error.message : "Failed to load questions",
-      },
+      { error: "Failed to load questions" },
       { status: 500 }
     );
   }
 }
+import { supabase } from "@/lib/supabase";
 
 export async function POST(req: Request) {
   try {
     const { body, author } = await req.json();
-
-    if (!body) {
-      return Response.json(
-        { error: "Missing required field: body" },
-        { status: 400 }
-      );
-    }
 
     const { data, error } = await supabase
       .from("questions")
@@ -53,17 +45,18 @@ export async function POST(req: Request) {
       .single();
 
     if (error) {
-      console.error("Insert error:", error);
-      return Response.json({ error: error.message }, { status: 500 });
+      return Response.json(
+        { error: error.message },
+        { status: 500 }
+      );
     }
 
     return Response.json(data);
-  } catch (err) {
-    console.error("Server error:", err);
+  } catch (error) {
+    console.error(error);
+
     return Response.json(
-      {
-        error: err instanceof Error ? err.message : "Server error",
-      },
+      { error: "Failed to create question" },
       { status: 500 }
     );
   }
